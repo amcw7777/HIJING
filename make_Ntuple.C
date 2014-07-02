@@ -13,6 +13,8 @@
 #include <sstream>
 #include <stdlib.h>
 #include <stdio.h>
+#include "ntupler/nt.C"
+#include "ntupler/hi.C"
 
 
 struct newEvent{
@@ -50,6 +52,16 @@ public :
    float          boostedPz[20000];
    float          boostedRapidity[20000];
 
+   float          x1;
+   float          x2;
+   float          pt1;
+   float          pt2;
+   float          eta1;
+   float          eta2;
+   float          phi1;
+   float          phi2;
+   float          dphi;
+   float          etadijet;
 
    void reset(){
     event=-9;
@@ -67,6 +79,16 @@ public :
     beta=-9;
     x=-9;
     nTrk = -9;
+    x1=-9;
+    x2=-9;
+    pt1=-9;
+    pt2=-9;
+    phi1 = -9;
+    phi2 = -9;
+    eta1 = -9;
+    eta2 = -9;
+    etadijet = -9;
+    dphi = -9;
    for(int i=0;i<20000;i++){
     trkPt[i] = -900;
     trkPhi[i] = -900;
@@ -89,7 +111,8 @@ public :
    newEvent(){
     reset();
    }
-   void setEvent(int fevent, float fb, float fframe_E, float ftotal_E, float fx, float fbeta,float fETpos, float fETneg,float fboostedETpos, float fboostedETneg,int fntrkpos, int fntrkneg,int  fboostedntrkpos, int  fboostedntrkneg,int ntrk, float *trkpt, float *trkphi, float *trketa, float *trkpx, float *trkpy, float *trkpz, float *trke,float *trkrapidity ,float *boostedpt, float *boostedphi, float *boostedeta, float *boostedpx, float *boostedpy, float *boostedpz, float *boostede,float *boostedrapidity){
+   void setEvent(int fevent, float fb, float fframe_E, float ftotal_E, float fx, float fbeta,float fETpos, float fETneg,float fboostedETpos, float fboostedETneg,int fntrkpos, int fntrkneg,int  fboostedntrkpos, int  fboostedntrkneg,int ntrk, float *trkpt, float *trkphi, float *trketa, float *trkpx, float *trkpy, float *trkpz, float *trke,float *trkrapidity ,float *boostedpt, float *boostedphi, float *boostedeta, float *boostedpx, float *boostedpy, float *boostedpz, float *boostede,float *boostedrapidity,float fpt1,float fpt2,float fphi1, float fphi2, float feta1, float feta2, float fetadijet, float fx1, float fx2){
+   // void setEvent(int fevent, float fb, float fframe_E, float ftotal_E, float fx, float fbeta,float fETpos, float fETneg,float fboostedETpos, float fboostedETneg,int fntrkpos, int fntrkneg,int  fboostedntrkpos, int  fboostedntrkneg,int ntrk, float *trkpt, float *trkphi, float *trketa, float *trkpx, float *trkpy, float *trkpz, float *trke,float *trkrapidity ,float *boostedpt, float *boostedphi, float *boostedeta, float *boostedpx, float *boostedpy, float *boostedpz, float *boostede,float *boostedrapidity){
     event = fevent;
     b = fb;
     nTrk = ntrk; 
@@ -103,6 +126,16 @@ public :
     Ntrkneg=fntrkneg;
     boostedNtrkpos=fboostedntrkpos;
     boostedNtrkneg=fboostedntrkneg;
+    pt1=fpt1;
+    pt2=fpt2;
+    eta1=feta1;
+    eta2=feta2;
+    phi1=fphi1;
+    phi2=fphi2;
+    // dphi=fdphi;
+    etadijet=fetadijet;
+    x1=fx1;
+    x2=fx2;
   for(int i=0; i<nTrk;i++){
    trkPt[i] = trkpt[i];
    trkPhi[i] = trkphi[i];
@@ -162,6 +195,22 @@ void make_Ntuple(){
  fT->Branch("boostedPy",evnt.boostedPy,"boostedPy[nTrk]/F");
  fT->Branch("boostedPz",evnt.boostedPz,"boostedPz[nTrk]/F");
  fT->Branch("boostedE",evnt.boostedE,"boostedE[nTrk]/F");
+ 
+ 
+ fT->Branch("eta1",&evnt.eta1,"eta1/F");
+ fT->Branch("eta2",&evnt.eta2,"eta2/F");
+ fT->Branch("phi1",&evnt.phi1,"phi1/F");
+ fT->Branch("phi2",&evnt.phi2,"phi2/F");
+ fT->Branch("pt1",&evnt.pt1,"pt1/F");
+ fT->Branch("pt2",&evnt.pt2,"pt2/F");
+ fT->Branch("x1",&evnt.x1,"x1/F");
+ fT->Branch("x2",&evnt.x2,"x2/F");
+ // fT->Branch("dphi",&evnt.dphi,"dphi/F");
+ fT->Branch("etadijet",&evnt.etadijet,"etadijet/F");
+ 
+ nt * fdijet = new nt("/afs/cern.ch/user/d/dgulhan/workDir/pythiaJets2/merged.root");
+ hi * fgen = new hi("/afs/cern.ch/user/d/dgulhan/workDir/pythiaJets2/merged.root");
+ 
  int            event=0;
  float          b;
  int            nTrk;
@@ -185,13 +234,52 @@ void make_Ntuple(){
  float          boostedPy[20000];
  float          boostedPz[20000];
  double         beta;
+ float          pt1;
+ float          pt2;
+ float          dphi;
+ float          eta1;
+ float          eta2;
+ float          phi1;
+ float          phi2;
+ float          etadijet;
+ float          x1;
+ float          x2;
+ 
+ int ievent=0;
+ int nentries = fdijet->GetEntriesFast();  
+ bool isfirst=true;
  for(vector <Event>::iterator it = event_vector.begin(); it != event_vector.end(); ++it){
+  bool passedDijetCuts=false;
+  while(!passedDijetCuts){ 
+   fgen->GetEntry(ievent); 
+   fdijet->GetEntry(ievent); 
+   if(fdijet->pt1>120 && fdijet->pt2>30 && acos(cos(fdijet->phi1-fdijet->phi2))>2.094){
+    passedDijetCuts=true;
+    pt1=fdijet->pt1;
+    pt2=fdijet->pt2;
+    eta1=fdijet->eta1;
+    eta2=fdijet->eta2;
+    phi1=fdijet->phi1;
+    phi2=fdijet->phi2;
+    dphi=acos(cos(phi1-phi2));
+    etadijet=(eta1+eta2)/2;
+    x1=fgen->x1;
+    x2=fgen->x2;
+    if(isfirst){
+     isfirst=false;
+     passedDijetCuts=false;
+    }
+   }
+   ievent++;
+  }
+  
   b=it->get_b();
   nTrk=it->get_number_of_particles();
   frame_E=it->get_frame_E();
   total_E=it->get_total_E();
   x=1-pow(it->frame_E/5020,2);
-  
+    if(ievent==0) cout<<b<<" "<<nTrk<<" "<<frame_E<<" "<<total_E<<endl;
+
   float          ETpos=0;
   float          ETneg=0;
   int            Ntrkpos=0;
@@ -248,12 +336,15 @@ void make_Ntuple(){
    }
    ntrk++;
   }
-  evnt.setEvent(event,b,frame_E,total_E,x,beta,ETpos,ETneg,boostedETpos,boostedETneg,Ntrkpos,Ntrkneg,boostedNtrkpos,boostedNtrkneg,ntrk,trkPt,trkPhi,trkEta,trkPx,trkPy,trkPz,trkE,trkRapidity,boostedPt,boostedPhi,boostedEta,boostedPx,boostedPy,boostedPz,boostedE,boostedRapidity);
+
+  evnt.setEvent(event,b,frame_E,total_E,x,beta,ETpos,ETneg,boostedETpos,boostedETneg,Ntrkpos,Ntrkneg,boostedNtrkpos,boostedNtrkneg,ntrk,trkPt,trkPhi,trkEta,trkPx,trkPy,trkPz,trkE,trkRapidity,boostedPt,boostedPhi,boostedEta,boostedPx,boostedPy,boostedPz,boostedE,boostedRapidity,pt1,pt2,phi1,phi2,eta1,eta2,etadijet,x1,x2);
+  // evnt.setEvent(event,b,frame_E,total_E,x,beta,ETpos,ETneg,boostedETpos,boostedETneg,Ntrkpos,Ntrkneg,boostedNtrkpos,boostedNtrkneg,ntrk,trkPt,trkPhi,trkEta,trkPx,trkPy,trkPz,trkE,trkRapidity,boostedPt,boostedPhi,boostedEta,boostedPx,boostedPy,boostedPz,boostedE,boostedRapidity);
   event++;
   // cout<<evnt.beta<<endl;
   fT->Fill();
   evnt.reset();
  }
+ outfile->cd();
  fT->Write();
  outfile->Close();
 }
